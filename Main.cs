@@ -1,51 +1,86 @@
 ﻿using HarmonyLib;
 using RimWorld;
 using RimWorld.QuestGen;
+using System;
+using System.Diagnostics;
+using System.Drawing.Printing;
 using System.Linq;
+using UnityEngine;
 using Verse;
 
-namespace No_Foreign_Xenotype_Wanderer_Join_Events
+namespace No_Foreign_Xenotype_Join_Events
 {
+    public class Settings : ModSettings
+    {
+        public bool excludeSlaves = true;
+        public bool questRewards = true;
+        public bool wandererJoins = true;
+        public bool transportCrash = true;
+
+        public override void ExposeData()
+        {
+            base.ExposeData();
+            Scribe_Values.Look(ref excludeSlaves, "excludeSlaves", true, true);
+            Scribe_Values.Look(ref questRewards, "questRewards", true, true);
+            Scribe_Values.Look(ref wandererJoins, "wandererJoins", true, true);
+            Scribe_Values.Look(ref transportCrash, "transportCrash", true, true);
+        }
+    }
+
     public class Main : Mod
     {
-        [HarmonyPatch(typeof(QuestNode_Root_WandererJoin_WalkIn), "GeneratePawn")]
-        static class QuestNode_Root_WandererJoin_WalkIn_GeneratePawn
+        public static Settings settings;
+
+        [HarmonyPatch(typeof(PawnGenerator), "GeneratePawn", new Type[] { typeof(PawnGenerationRequest) })]
+        static class PawnGenerator_PawnGenerationRequest
         {
-            public static bool Prefix()
+            public static void Prefix(ref PawnGenerationRequest request)
             {
-                Slate slate = QuestGen.slate;
-                Gender? fixedGender = null;
-                PawnGenerationRequest request;
-                if (!slate.TryGet("overridePawnGenParams", out request, false))
+                var methodInfo = new StackTrace().GetFrame(2).GetMethod();
+                var methodClass = methodInfo.ReflectedType;
+                if ((settings.questRewards && methodClass == typeof(QuestNode_GeneratePawn)) ||
+                    (settings.wandererJoins && methodClass == typeof(QuestNode_Root_WandererJoin_WalkIn)) ||
+                    (settings.transportCrash && methodClass == typeof(ThingSetMaker_RefugeePod)))
                 {
-                    request = new PawnGenerationRequest(PawnKindDefOf.Villager, null, PawnGenerationContext.NonPlayer, -1, true, false, false, true, false, 
-                        20f, false, true, true, true, true, false, false, false, false, 0f, 0f, null, 1f, null, null, null, null, null, null, null, 
-                        fixedGender, null, null, null, null, false, false, false, false, null, null, null, null, null, 0f, DevelopmentalStage.Adult, null, null, null, true);
+                    Map map = Find.CurrentMap;
+                    var playerPawn = map.PlayerPawnsForStoryteller.Where(x => x.IsColonist && x.RaceProps.Humanlike && (!x.IsSlave || !settings.excludeSlaves)).RandomElement();
+                    if (playerPawn.genes?.CustomXenotype != null)
+                    {
+                        request.ForcedCustomXenotype = playerPawn.genes.CustomXenotype;
+                    }
+                    else if (playerPawn.genes?.xenotype != null)
+                    {
+                        request.ForcedXenotype = playerPawn.genes.xenotype;
+                    }
                 }
-
-                Map map = Find.CurrentMap;
-                var playerPawn = map.PlayerPawnsForStoryteller.Where(x => x.IsColonist && x.RaceProps.Humanlike).RandomElement();
-                if (playerPawn.genes?.CustomXenotype != null)
-                {
-                    request.ForcedCustomXenotype = playerPawn.genes.CustomXenotype;
-                }
-                else if (playerPawn.genes?.xenotype != null)
-                {
-                    request.ForcedXenotype = playerPawn.genes.xenotype;
-                }
-
-                slate.Set("overridePawnGenParams", request);
-
-                return true;
             }
         }
 
         public Main(ModContentPack contentPack) : base(contentPack)
         {
             var harm = new Harmony("pogo.nfxwje");
-            var methodBase = typeof(QuestNode_Root_WandererJoin_WalkIn).GetMethod("GeneratePawn");
-            var harmMethod = new HarmonyMethod(typeof(QuestNode_Root_WandererJoin_WalkIn_GeneratePawn).GetMethod("Prefix"));
+            var methodBase = typeof(PawnGenerator).GetMethod("GeneratePawn", new Type[] { typeof(PawnGenerationRequest) });
+            var harmMethod = new HarmonyMethod(typeof(PawnGenerator_PawnGenerationRequest).GetMethod("Prefix"));
+            settings = GetSettings<Settings>();
             harm.Patch(methodBase, harmMethod);
+        }
+
+        public override void DoSettingsWindowContents(Rect inRect)
+        {
+            base.DoSettingsWindowContents(inRect);
+            Listing_Standard listingStandard = new Listing_Standard();
+            listingStandard.Begin(inRect);
+            listingStandard.CheckboxLabeled("Include wanderer join events", ref settings.wandererJoins);
+            listingStandard.CheckboxLabeled("Include quest reward pawns", ref settings.questRewards);
+            listingStandard.CheckboxLabeled("Include transport pod crashes", ref settings.transportCrash);
+            listingStandard.CheckboxLabeled("Exclude slave xenotypes from random selection", ref settings.excludeSlaves);
+            listingStandard.End();
+            settings.Write();
+        }
+
+        public override string SettingsCategory()
+        {
+            return "No Foreign Xenotype Join Events";
         }
     }
 }

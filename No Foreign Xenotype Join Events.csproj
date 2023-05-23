@@ -32,13 +32,17 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<TreatWarningsAsErrors>false</TreatWarningsAsErrors>
 		<DebugType>full</DebugType>
-	</PropertyGroup>	
+	</PropertyGroup>
+	<ItemGroup>
+	  <None Remove=".gitattributes" />
+	  <None Remove=".gitignore" />
+	</ItemGroup>	
 	<ItemGroup>
 		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.4.3580-beta" GeneratePathProperty="true" />
 		<PackageReference Include="Lib.Harmony" Version="2.2.2" ExcludeAssets="runtime" />		
 	</ItemGroup>
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-		<Exec Command="copy /Y &quot;$(TargetDir)$(ProjectName).dll&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\No-Foreign-Xenotype-Wanderer-Join-Events\1.4\Assemblies\$(ProjectName).dll&quot;" />
+		<Exec Command="copy /Y &quot;$(TargetDir)$(ProjectName).dll&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\No-Foreign-Xenotype-Join-Events\1.4\Assemblies\$(ProjectName).dll&quot;" />
 	</Target>
 
 </Project>
