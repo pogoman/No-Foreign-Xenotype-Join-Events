@@ -38,7 +38,7 @@ namespace No_Foreign_Xenotype_Join_Events
             {
                 var methodInfo = new StackTrace().GetFrame(2).GetMethod();
                 var methodClass = methodInfo.ReflectedType;
-                if ((settings.questRewards && methodClass == typeof(QuestNode_GeneratePawn)) ||
+                if ((settings.questRewards && (methodClass == typeof(QuestNode_GeneratePawn) || methodClass == typeof(Reward_Pawn))) ||
                     (settings.wandererJoins && methodClass == typeof(QuestNode_Root_WandererJoin_WalkIn)) ||
                     (settings.transportCrash && methodClass == typeof(ThingSetMaker_RefugeePod)))
                 {
