@@ -48,9 +48,9 @@ namespace No_Foreign_Xenotype_Join_Events
                     {
                         request.ForcedCustomXenotype = playerPawn.genes.CustomXenotype;
                     }
-                    else if (playerPawn.genes?.xenotype != null)
+                    else if (playerPawn.genes?.Xenotype != null)
                     {
-                        request.ForcedXenotype = playerPawn.genes.xenotype;
+                        request.ForcedXenotype = playerPawn.genes.Xenotype;
                     }
                 }
             }
